@@ -257,6 +257,28 @@
     <Setter Property="Foreground" Value="{DynamicResource MutedBrush}" />
   </Style>
 
+  <!-- A short list to choose from, inside a settings-style row. -->
+  <Style Selector="ListBox.choices">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="MaxHeight" Value="200" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem">
+    <Setter Property="Padding" Value="10 7" />
+    <Setter Property="Margin" Value="0 1" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="CornerRadius" Value="8" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource HoverBrush}" />
+  </Style>
+  <Style Selector="ListBox.choices ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                   ListBox.choices ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SelectionBrush}" />
+  </Style>
+
   <!-- Log table -->
   <Style Selector="ListBox#LogList">
     <Setter Property="Background" Value="Transparent" />

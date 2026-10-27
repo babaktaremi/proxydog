@@ -10,9 +10,16 @@ public sealed partial class MainViewModel : ObservableObject
     readonly RuleStore store;
     readonly RecentProxyStore? recents;
 
-    public MainViewModel(RuleStore store, RecentProxyStore? recents = null, UpdateViewModel? update = null)
+    readonly V2RayProfileStore? v2rayStore;
+
+    public MainViewModel(RuleStore store, RecentProxyStore? recents = null, UpdateViewModel? update = null,
+        V2RayProfileStore? v2rayStore = null, V2RayCoreViewModel? v2rayCore = null)
     {
         Update = update ?? UpdateViewModel.None;
+        V2RayCore = v2rayCore ?? new V2RayCoreViewModel();
+        this.v2rayStore = v2rayStore;
+        foreach (var profile in v2rayStore?.Load() ?? [])
+            V2RayProfiles.Add(new V2RayProfileItem(profile));
         this.store = store;
         this.recents = recents;
         RulesPage = new RulesPageViewModel(this);
@@ -27,6 +34,8 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public UpdateViewModel Update { get; }
+    public V2RayCoreViewModel V2RayCore { get; }
+    public ObservableCollection<V2RayProfileItem> V2RayProfiles { get; } = [];
     public RulesPageViewModel RulesPage { get; }
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
     public ObservableCollection<RuleViewModel> Rules { get; } = [];
@@ -75,10 +84,49 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void CloseEditor() => Editor = null;
 
+    public V2RayProfileItem? FindV2RayProfile(Guid? id) => id is null ? null : V2RayProfiles.FirstOrDefault(p => p.Id == id);
+
+    /// <summary>Validates and saves a pasted vless:// or vmess:// link. Returns null and sets <paramref name="error"/> when it cannot.</summary>
+    public V2RayProfileItem? AddV2RayProfile(string? link, string? name, out string error)
+    {
+        if (!V2RayLink.TryParse(link, out var endpoint, out error))
+            return null;
+        if (V2RayProfiles.FirstOrDefault(p => p.Profile.Link == link!.Trim()) is { } existing)
+        {
+            error = $"That link is already saved as \"{existing.Name}\".";
+            return null;
+        }
+        var profile = new V2RayProfile
+        {
+            Name = string.IsNullOrWhiteSpace(name) ? endpoint.Name : name.Trim(),
+            Link = link!.Trim(),
+        };
+        var item = new V2RayProfileItem(profile);
+        V2RayProfiles.Add(item);
+        v2rayStore?.Save(V2RayProfiles.Select(p => p.Profile));
+        error = "";
+        return item;
+    }
+
+    /// <summary>A profile that a rule still uses cannot be removed.</summary>
+    public bool RemoveV2RayProfile(V2RayProfileItem item, out string error)
+    {
+        var users = Rules.Count(r => r.Rule.Kind == ProxyKind.V2Ray && r.Rule.V2RayProfileId == item.Id);
+        if (users > 0)
+        {
+            error = users == 1 ? "A rule uses this profile. Change or remove that rule first." : $"{users} rules use this profile. Change or remove them first.";
+            return false;
+        }
+        V2RayProfiles.Remove(item);
+        v2rayStore?.Save(V2RayProfiles.Select(p => p.Profile));
+        error = "";
+        return true;
+    }
+
     /// <summary>Proxies saved before: the recents file first, then any used by current rules, without duplicates.</summary>
     public IReadOnlyList<RecentProxy> RecentProxies() =>
         (recents?.Load() ?? [])
-            .Concat(Rules.Select(r => RecentProxy.From(r.Rule)))
+            .Concat(Rules.Where(r => r.Rule.Kind != ProxyKind.V2Ray).Select(r => RecentProxy.From(r.Rule)))
             .DistinctBy(p => p.Key)
             .Take(8)
             .ToList();
@@ -100,7 +148,7 @@ public sealed partial class MainViewModel : ObservableObject
             vm.Update(rule);
         }
         Persist();
-        recents?.Add(RecentProxy.From(rule));
+        if (rule.Kind != ProxyKind.V2Ray) recents?.Add(RecentProxy.From(rule));
         Editor = null;
         NotifyRulesChanged();
     }

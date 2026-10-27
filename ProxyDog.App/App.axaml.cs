@@ -5,6 +5,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using ProxyDog.Core;
+using ProxyDog.Engine;
 using ProxyDog.UI.ViewModels;
 using ProxyDog.UI.Views;
 
@@ -36,7 +37,9 @@ public sealed class App : Application
                 AppInfo.Version,
                 InstallDetector.Detect(),
                 AppInfo.Notify);
-            main = new MainViewModel(new RuleStore(RuleStore.DefaultPath), new RecentProxyStore(RecentProxyStore.DefaultPath), update);
+            main = new MainViewModel(new RuleStore(RuleStore.DefaultPath), new RecentProxyStore(RecentProxyStore.DefaultPath), update,
+                new V2RayProfileStore(V2RayProfileStore.DefaultPath),
+                new V2RayCoreViewModel(new V2RayCoreInstaller(new HttpClient { Timeout = TimeSpan.FromMinutes(3) })));
             window = new MainWindow { DataContext = main };
             window.Closing += (_, e) =>
             {

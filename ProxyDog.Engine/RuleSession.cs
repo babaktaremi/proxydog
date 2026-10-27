@@ -3,9 +3,17 @@ using ProxyDog.Core;
 
 namespace ProxyDog.Engine;
 
+/// <summary>What a V2Ray rule needs to start: the parsed profile and the core executable to run it.</summary>
+public sealed record V2RayStart(V2RayEndpoint Endpoint, string CorePath);
+
 /// <summary>One rule being switched on: its forwarding engine plus the hooked application process.</summary>
 public sealed class RuleSession(ProxyRule rule)
 {
+    V2RayCore? core;
+    ProxyRule? upstream;          // what the engine dials: set for a V2Ray rule (the local core); otherwise the rule itself
+    string? watchHost;
+    int watchPort;
+
     ProxyEngine? engine;
     Process? process;
     UpstreamWatchdog? watchdog;
@@ -13,6 +21,9 @@ public sealed class RuleSession(ProxyRule rule)
     int lastPort;
     int failureStreak;
     int tripped;
+
+    /// <summary>Required when the rule's kind is V2Ray.</summary>
+    public V2RayStart? V2Ray { get; init; }
 
     public bool IsRunning => engine is not null;
 
@@ -47,18 +58,32 @@ public sealed class RuleSession(ProxyRule rule)
 
         tripped = 0;
         failureStreak = 0;
-        var e = new ProxyEngine(rule);
+        if (rule.Kind == ProxyKind.V2Ray)
+            StartV2RayCore();
+
+        var e = new ProxyEngine(upstream ?? rule);
         e.ConnectionEvent += ev =>
         {
             if (ev.Kind == ConnectionEventKind.Connected) Interlocked.Exchange(ref failureStreak, 0);
             ConnectionEvent?.Invoke(ev);
         };
         // Reuse the rule's own port so anything that remembered it (Telegram) keeps working across runs.
-        e.Start(rule.LocalPort != 0 ? rule.LocalPort : lastPort);
+        try
+        {
+            e.Start(rule.LocalPort != 0 ? rule.LocalPort : lastPort);
+        }
+        catch
+        {
+            // The core is already running; do not leave it behind.
+            if (core is { } orphan) { core = null; orphan.StopAsync().GetAwaiter().GetResult(); }
+            throw;
+        }
         lastPort = e.Port;
         rule.LocalPort = e.Port;
         engine = e;
-        Notice?.Invoke($"Forwarding through {rule.Kind.ToString().ToUpperInvariant()} {rule.Host}:{rule.Port}", false);
+        Notice?.Invoke(rule.Kind == ProxyKind.V2Ray
+            ? $"Forwarding through V2Ray: {V2Ray!.Endpoint.Name} ({V2Ray.Endpoint.Summary})"
+            : $"Forwarding through {rule.Kind.ToString().ToUpperInvariant()} {rule.Host}:{rule.Port}", false);
 
         // Always listening, so the kill switch can be armed or disarmed while the rule is on.
         e.UpstreamFailure += msg =>
@@ -85,10 +110,39 @@ public sealed class RuleSession(ProxyRule rule)
         StateChanged?.Invoke();
     }
 
+    /// <summary>
+    /// Runs the Xray core and makes the engine dial it as a plain SOCKS5 proxy on loopback. The kill switch watches the
+    /// V2Ray server itself (when it speaks TCP), so a dead server is noticed, not only a dead local core.
+    /// </summary>
+    void StartV2RayCore()
+    {
+        var v = V2Ray ?? throw new InvalidOperationException("This rule uses V2Ray, but no V2Ray profile was supplied.");
+        var started = V2RayCore.StartAsync(v.CorePath, v.Endpoint).GetAwaiter().GetResult();
+        core = started;
+
+        upstream = rule.Clone();
+        upstream.Kind = ProxyKind.Socks5;
+        upstream.Host = "127.0.0.1";
+        upstream.Port = started.Port;
+        upstream.Username = null;
+        upstream.Password = null;
+
+        var tcpBased = v.Endpoint.Network is not ("kcp" or "quic");
+        watchHost = tcpBased ? v.Endpoint.Address : "127.0.0.1";
+        watchPort = tcpBased ? v.Endpoint.Port : started.Port;
+
+        started.Exited += reason =>
+        {
+            if (engine is null) return;
+            Notice?.Invoke(reason, true);
+            if (rule.KillSwitch) _ = TripAsync(reason.TrimEnd('.'));
+        };
+    }
+
     void ArmWatchdog()
     {
         if (watchdog is not null) return;
-        var dog = new UpstreamWatchdog(rule.Host, rule.Port, WatchInterval);
+        var dog = new UpstreamWatchdog(watchHost ?? rule.Host, watchPort != 0 ? watchPort : rule.Port, WatchInterval);
         dog.Tripped += msg => _ = TripAsync(msg);
         dog.Start();
         watchdog = dog;
@@ -255,6 +309,11 @@ public sealed class RuleSession(ProxyRule rule)
         // Close the app before the engine so nothing can slip out while we shut down.
         var closed = killApp ? await Task.Run(TerminateApp) : 0;
         await e.StopAsync();
+        if (core is { } c)
+        {
+            core = null;
+            await c.StopAsync();
+        }
 
         var name = executable is null ? "the application" : Path.GetFileName(executable);
         Notice?.Invoke(

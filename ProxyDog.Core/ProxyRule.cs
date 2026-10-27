@@ -8,6 +8,9 @@ public enum ProxyKind
 {
     Socks5,
     Http,
+
+    /// <summary>A V2Ray / Xray profile (vless:// or vmess://). ProxyDog runs the core locally and uses it as a SOCKS5 upstream.</summary>
+    V2Ray,
 }
 
 /// <summary>What to do when the chosen application is already running as the rule is switched on.</summary>
@@ -29,6 +32,11 @@ public sealed class ProxyRule
     public int Port { get; set; }
     public string? Username { get; set; }
     public string? Password { get; set; }
+
+    /// <summary>For <see cref="ProxyKind.V2Ray"/>: which saved profile to use, and its name as it was when chosen.</summary>
+    public Guid? V2RayProfileId { get; set; }
+    public string? V2RayProfileName { get; set; }
+
     public string AppPath { get; set; } = "";
     public string? Arguments { get; set; }
     // Renamed from WhenRunning (default was Leave): saved rules written before this fix pick up the new default.

@@ -30,7 +30,7 @@ Runs as a desktop app on macOS and Linux and lives in the top bar (macOS menu ba
 
 ## Capabilities and Constraints
 
-- Two proxy types: SOCKS5 and HTTP.
+- Three proxy types: SOCKS5, HTTP, and V2Ray (profiles added from vless:// or vmess:// links; the Xray core runs locally and serves as the upstream).
 - Flow: the user defines a rule, then a picker opens and the user selects the application to proxify.
 - After successful configuration, a tab is added to the app showing that application's connection logs through the proxy.
 - Each rule has an on/off toggle.

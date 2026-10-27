@@ -66,7 +66,7 @@
                 <TextBlock Classes="section" Text="Proxy" Margin="4 0" />
                 <Border Classes="group">
                   <StackPanel>
-                    <Border Classes="row" IsVisible="{Binding HasRecents}">
+                    <Border Classes="row" IsVisible="{Binding ShowRecents}">
                       <Grid ColumnDefinitions="150,*">
                         <TextBlock Text="Recent" VerticalAlignment="Center" />
                         <ComboBox Grid.Column="1" Classes="pill" HorizontalAlignment="Right" MinWidth="240"
@@ -89,32 +89,98 @@
                           </ListBox.ItemsPanel>
                           <ListBoxItem Content="SOCKS5" />
                           <ListBoxItem Content="HTTP" />
+                          <ListBoxItem Content="V2Ray" />
                         </ListBox>
                       </Grid>
                     </Border>
-                    <Border Classes="row">
+                    <Border Classes="row" IsVisible="{Binding IsManual}">
                       <Grid ColumnDefinitions="150,*">
                         <TextBlock Text="Host" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1" Classes="field" Text="{Binding Host}" Watermark="proxy.example.com" />
                       </Grid>
                     </Border>
-                    <Border Classes="row">
+                    <Border Classes="row" IsVisible="{Binding IsManual}">
                       <Grid ColumnDefinitions="150,*">
                         <TextBlock Text="Port" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1" Classes="field" Text="{Binding PortText}" />
                       </Grid>
                     </Border>
-                    <Border Classes="row">
+                    <Border Classes="row" IsVisible="{Binding IsManual}">
                       <Grid ColumnDefinitions="150,*">
                         <TextBlock Text="Username" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1" Classes="field" Text="{Binding Username}" Watermark="Optional" />
                       </Grid>
                     </Border>
-                    <Border Classes="row last">
+                    <Border Classes="row last" IsVisible="{Binding IsManual}">
                       <Grid ColumnDefinitions="150,*">
                         <TextBlock Text="Password" VerticalAlignment="Center" />
                         <TextBox Grid.Column="1" Classes="field" Text="{Binding Password}" PasswordChar="•" Watermark="Optional" />
                       </Grid>
+                    </Border>
+
+                    <!-- V2Ray: choose one of the saved profiles, or add one -->
+                    <Border Classes="row last" IsVisible="{Binding IsV2Ray}">
+                      <StackPanel Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="V2Ray profile" />
+                            <TextBlock Classes="caption" Text="Added from a vless:// or vmess:// link." />
+                          </StackPanel>
+                          <Button Grid.Column="1" Command="{Binding ShowAddProfileCommand}" ToolTip.Tip="Add a V2Ray profile"
+                                  IsVisible="{Binding HasProfiles}" Padding="10 4">
+                            <Path Data="M7,2 L7,12 M2,7 L12,7" Stroke="{DynamicResource LinkBrush}" StrokeThickness="2"
+                                  StrokeLineCap="Round" Width="14" Height="14" />
+                          </Button>
+                        </Grid>
+
+                        <!-- nothing saved yet: a plus button to add the first one -->
+                        <StackPanel Spacing="8" HorizontalAlignment="Left" IsVisible="{Binding NoProfiles}">
+                          <TextBlock Classes="muted" TextWrapping="Wrap" Text="No V2Ray profiles yet." />
+                          <Button Command="{Binding ShowAddProfileCommand}" IsVisible="{Binding !IsAddingProfile}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <Path Data="M7,2 L7,12 M2,7 L12,7" Stroke="{DynamicResource LinkBrush}" StrokeThickness="2"
+                                    StrokeLineCap="Round" Width="14" Height="14" VerticalAlignment="Center" />
+                              <TextBlock Text="Add Profile" />
+                            </StackPanel>
+                          </Button>
+                        </StackPanel>
+
+                        <ListBox Classes="choices" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}"
+                                 IsVisible="{Binding HasProfiles}">
+                          <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:V2RayProfileItem">
+                              <StackPanel Spacing="1">
+                                <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Classes="caption" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" />
+                              </StackPanel>
+                            </DataTemplate>
+                          </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Button Classes="plain" Content="Remove selected profile" HorizontalAlignment="Left"
+                                Command="{Binding RemoveProfileCommand}" IsVisible="{Binding SelectedProfile, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+                        <!-- paste a link -->
+                        <StackPanel Spacing="8" IsVisible="{Binding IsAddingProfile}">
+                          <TextBox Text="{Binding NewLink}" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="72" MaxHeight="120"
+                                   Watermark="Paste a vless:// or vmess:// link" />
+                          <TextBox Text="{Binding NewName}" Watermark="Name (optional, defaults to the one in the link)" />
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Content="Add" Classes="accent" Command="{Binding AddProfileCommand}" />
+                            <Button Content="Cancel" Command="{Binding CancelAddProfileCommand}" />
+                          </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock Classes="error" Text="{Binding ProfileError}"
+                                   IsVisible="{Binding ProfileError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                        <!-- the core is a separate program: offer to fetch it -->
+                        <StackPanel Spacing="8" IsVisible="{Binding !Core.IsInstalled}">
+                          <TextBlock Classes="caption" TextWrapping="Wrap" Text="{Binding Core.Status}" />
+                          <Button Content="Download Xray Core" Command="{Binding Core.DownloadCommand}"
+                                  IsVisible="{Binding Core.CanDownload}" HorizontalAlignment="Left"
+                                  ToolTip.Tip="Downloads Xray-core from github.com/XTLS/Xray-core and checks its checksum" />
+                        </StackPanel>
+                      </StackPanel>
                     </Border>
                   </StackPanel>
                 </Border>

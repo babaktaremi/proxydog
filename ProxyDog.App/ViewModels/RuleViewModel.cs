@@ -45,7 +45,12 @@ public sealed partial class RuleViewModel : TabViewModel
     public override string Title => Rule.Name;
     public override bool IsActive => isOn;
     public override bool ShowsStatus => true;
-    public string Summary => $"{(Rule.Kind == ProxyKind.Socks5 ? "SOCKS5" : "HTTP")} {Rule.Host}:{Rule.Port}";
+    public string Summary => Rule.Kind switch
+    {
+        ProxyKind.Socks5 => $"SOCKS5 {Rule.Host}:{Rule.Port}",
+        ProxyKind.Http => $"HTTP {Rule.Host}:{Rule.Port}",
+        _ => $"V2Ray {Rule.V2RayProfileName}",
+    };
     public string AppName => Path.GetFileNameWithoutExtension(Rule.AppPath.TrimEnd('/', '\\'));
     /// <summary>Applies at once, also to a running rule, and is saved with the rule.</summary>
     public bool KillSwitch
@@ -133,7 +138,19 @@ public sealed partial class RuleViewModel : TabViewModel
     async Task StartCoreAsync()
     {
         LastError = null;
-        var s = new RuleSession(Rule);
+        RuleSession s;
+        try
+        {
+            s = new RuleSession(Rule) { V2Ray = ResolveV2Ray() };
+        }
+        catch (InvalidOperationException ex)
+        {
+            LastError = ex.Message;
+            AddNotice(ex.Message, true);
+            wantOn = false;
+            SetOn(false);
+            return;
+        }
         s.ConnectionEvent += e => Dispatcher.UIThread.Post(() => Apply(e));
         s.Notice += (text, problem) => Dispatcher.UIThread.Post(() => AddNotice(text, problem));
         s.StateChanged += () => Dispatcher.UIThread.Post(RaiseState);
@@ -160,6 +177,22 @@ public sealed partial class RuleViewModel : TabViewModel
             wantOn = false; // it did not start, so the switch goes back to off
             SetOn(false);
         }
+    }
+
+    /// <summary>For a V2Ray rule: the saved profile and the core that will run it. Throws a message the user can act on.</summary>
+    V2RayStart? ResolveV2Ray()
+    {
+        if (Rule.Kind != ProxyKind.V2Ray) return null;
+
+        var profile = main.FindV2RayProfile(Rule.V2RayProfileId)
+                      ?? throw new InvalidOperationException("This rule's V2Ray profile was removed. Edit the rule and choose another.");
+        if (profile.Endpoint is null)
+            throw new InvalidOperationException($"The V2Ray profile \"{profile.Name}\" has an unreadable link. {profile.Summary}");
+
+        main.V2RayCore.Refresh();
+        var core = main.V2RayCore.Path
+                   ?? throw new InvalidOperationException("The Xray core is not installed. Edit the rule, choose V2Ray and press Download Xray Core.");
+        return new V2RayStart(profile.Endpoint, core);
     }
 
     async Task StopCoreAsync()

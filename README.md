@@ -19,7 +19,7 @@
 A system-wide VPN sends everything through one tunnel. ProxyDog is the opposite: you pick **one application**, give it a
 proxy, and only that application's traffic goes through it. Everything else on your machine is untouched.
 
-- **Per-app rules** with SOCKS5 or HTTP (CONNECT) proxies, with optional username and password.
+- **Per-app rules** with SOCKS5, HTTP (CONNECT) or **V2Ray** (`vless://` and `vmess://` profiles), with optional username and password for the first two.
 - **A live log per rule**: every destination, whether it connected, and how much was sent and received.
 - **An on/off switch per rule**, in the window and in the menu bar / tray.
 - **Kill switch** (optional, per rule): closes the app if the proxy stops responding or the rule is turned off, so it
@@ -71,6 +71,24 @@ sandboxed snap cannot do that.
 If the app is already running when you switch a rule on, ProxyDog can restart it so the proxy takes effect
 (**If already running > Restart it**, the default).
 
+## V2Ray
+
+Choose **V2Ray** as the proxy type to send an application through a V2Ray / Xray server instead of a plain proxy.
+
+1. In a rule, set **Type** to **V2Ray**. Your saved profiles are listed there; if there are none yet, press **Add Profile**.
+2. Paste a `vless://` or `vmess://` share link (and an optional name). ProxyDog reads the server, transport (TCP, WebSocket,
+   gRPC, HTTP/2, mKCP, HTTPUpgrade, XHTTP) and security (TLS or REALITY) from the link, and keeps the profile for any
+   number of rules.
+3. Choose the application and switch the rule on.
+
+ProxyDog runs the [Xray](https://github.com/XTLS/Xray-core) core for you on a loopback port and sends the application's
+traffic through it, so everything else about a rule (the live log, the kill switch, the on/off switch) works the same.
+The core is a separate program: press **Download Xray Core** in the rule editor (it fetches the official release and checks its
+SHA-256 first), or install `xray` with your package manager and ProxyDog finds it on the `PATH`. With the kill switch on, the app is closed if the V2Ray
+server becomes unreachable or the core stops.
+
+Not supported yet: `trojan://`, `ss://` and other link types.
+
 ## How it works
 
 ProxyDog runs a small forwarding engine on `127.0.0.1` for each rule. How an app is pointed at it depends on the app:
@@ -88,7 +106,7 @@ never silently falls back to a direct connection.
 
 ### Limits
 
-- **UDP is not proxied** (calls, QUIC/HTTP3, game traffic). Only TCP is.
+- **UDP is not proxied** (calls, QUIC/HTTP3, game traffic). Only TCP is, including through V2Ray.
 - Apps that macOS refuses to inject into (system programs, and hardened-runtime apps that are not Chromium-based) cannot be
   routed; ProxyDog warns you when it detects one.
 - Programs that bypass libc, such as Go binaries, are not covered by the preload library.
