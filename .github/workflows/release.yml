@@ -169,38 +169,11 @@ jobs:
     name: Build the pacman package
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
     needs: [prepare, release]
-    runs-on: ubuntu-24.04
-    container: archlinux:latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ needs.prepare.outputs.version }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Install tools
-        run: pacman -Syu --noconfirm base-devel git github-cli sudo
-      - uses: actions/checkout@v4
-      - name: Render the PKGBUILD from the published checksums
-        run: |
-          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt
-          export SHA256_LINUX_X64=$(grep "linux-x64.tar.gz" checksums.txt | cut -d' ' -f1)
-          export SHA256_LINUX_ARM64=$(grep "linux-arm64.tar.gz" checksums.txt | cut -d' ' -f1)
-          mkdir -p /tmp/pkg
-          scripts/render.sh packaging/arch/PKGBUILD.in /tmp/pkg/PKGBUILD
-          cat /tmp/pkg/PKGBUILD
-      - name: makepkg (as a normal user, which it requires)
-        run: |
-          useradd -m builder
-          chown -R builder /tmp/pkg
-          su builder -c "cd /tmp/pkg && makepkg -f --noconfirm"
-          ls -la /tmp/pkg/*.pkg.tar.zst
-      - name: Attach the package to the release
-        run: gh release upload "v${VERSION}" /tmp/pkg/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
-      - name: Keep the PKGBUILD for the AUR job
-        uses: actions/upload-artifact@v4
-        with:
-          name: pkgbuild
-          path: /tmp/pkg/PKGBUILD
+    uses: ./.github/workflows/pacman.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
 
   aur:
     name: Publish to the AUR

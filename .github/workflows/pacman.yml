@@ -1,0 +1,60 @@
+name: Pacman package
+
+# Builds proxydog-bin for Arch Linux from a published release and attaches it to that release.
+# Called by the Release workflow, and runnable by hand to (re)build the package for any existing release.
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version without the v, e.g. 1.2.3'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version without the v, e.g. 1.2.3'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  pacman:
+    name: Build proxydog-bin ${{ inputs.version }}
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    env:
+      VERSION: ${{ inputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm base-devel git github-cli sudo
+      - uses: actions/checkout@v4
+      - name: Render the PKGBUILD from the published checksums
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt
+          export SHA256_LINUX_X64=$(grep "linux-x64.tar.gz" checksums.txt | cut -d' ' -f1)
+          export SHA256_LINUX_ARM64=$(grep "linux-arm64.tar.gz" checksums.txt | cut -d' ' -f1)
+          mkdir -p /tmp/pkg
+          scripts/render.sh packaging/arch/PKGBUILD.in /tmp/pkg/PKGBUILD
+          cat /tmp/pkg/PKGBUILD
+      # -d: the package only repackages prebuilt binaries, so its runtime dependencies are not needed to build it.
+      - name: makepkg (as a normal user, which it requires)
+        run: |
+          useradd -m builder
+          chown -R builder /tmp/pkg
+          su builder -c "cd /tmp/pkg && makepkg -f -d --noconfirm"
+          ls -la /tmp/pkg/*.pkg.tar.zst
+      - name: Check the package contents
+        run: |
+          pacman -Qlp /tmp/pkg/*.pkg.tar.zst | grep -E "usr/bin/proxydog|libproxydog_hook.so|proxydog.desktop|LICENSE"
+          pacman -Qip /tmp/pkg/*.pkg.tar.zst | grep -E "^(Name|Version|License|Depends On)"
+      - name: Attach the package to the release
+        run: gh release upload "v${VERSION}" /tmp/pkg/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Keep the PKGBUILD for the AUR job
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgbuild
+          path: /tmp/pkg/PKGBUILD
