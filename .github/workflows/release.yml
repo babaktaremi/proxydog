@@ -56,7 +56,7 @@ jobs:
           global-json-file: global.json
       - name: Package ProxyDog.app
         run: scripts/package-macos.sh ${{ matrix.rid }} ${{ needs.prepare.outputs.version }} dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: package-${{ matrix.rid }}
           path: dist/*
@@ -78,7 +78,7 @@ jobs:
           global-json-file: global.json
       - name: Package tarball
         run: scripts/package-linux.sh ${{ matrix.rid }} ${{ needs.prepare.outputs.version }} dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: package-${{ matrix.rid }}
           path: dist/*
@@ -227,7 +227,7 @@ jobs:
       - uses: snapcore/action-build@v1
         id: build
       - name: Keep the .snap
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: snap-${{ matrix.runner }}
           path: ${{ steps.build.outputs.snap }}
