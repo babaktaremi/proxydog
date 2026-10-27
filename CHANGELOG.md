@@ -5,6 +5,17 @@ and versions follow [Semantic Versioning](https://semver.org/). Release notes on
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-27
+
+### Added
+- **V2Ray profiles.** A new rule type next to SOCKS5 and HTTP: paste a `vless://` or `vmess://` link once, then pick that
+  profile in any rule. ProxyDog runs the Xray core locally and routes the application through it.
+- One-click **Download Xray Core** in the rule editor (official release, SHA-256 checked), or use an `xray` you installed.
+- The kill switch also watches the V2Ray server and the core, not only a plain proxy.
+
+### Fixed
+- The error shown when the V2Ray core fails to start now includes the core's own explanation.
+
 ## [1.0.0] - 2026-10-27
 
 First release.
@@ -19,5 +30,6 @@ First release.
 - Recent proxies dropdown, restart-if-already-running option, and a stable local port per rule.
 - Update alerts: a banner, a menu item and a system notification when a newer release is published.
 
-[Unreleased]: https://github.com/babaktaremi/proxydog/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/babaktaremi/proxydog/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/babaktaremi/proxydog/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/babaktaremi/proxydog/releases/tag/v1.0.0

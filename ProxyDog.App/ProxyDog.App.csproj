@@ -3,7 +3,7 @@
     <OutputType>WinExe</OutputType>
     <AssemblyName>ProxyDog</AssemblyName>
     <RootNamespace>ProxyDog.UI</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <ApplicationIcon />
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
