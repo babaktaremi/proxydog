@@ -50,7 +50,7 @@ jobs:
       matrix:
         rid: [osx-arm64, osx-x64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -72,7 +72,7 @@ jobs:
           - { rid: linux-x64, runner: ubuntu-24.04 }
           - { rid: linux-arm64, runner: ubuntu-24.04-arm }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
@@ -95,7 +95,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -135,7 +135,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Skip when the tap is not configured
         id: gate
         run: |
@@ -218,7 +218,7 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Render snapcraft.yaml
         run: |
           mkdir -p snap
