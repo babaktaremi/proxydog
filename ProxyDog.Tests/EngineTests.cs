@@ -794,7 +794,15 @@ public class RunningAppTests
                 System.Diagnostics.Process.Start("codesign", ["--force", "-s", "-", exe])!.WaitForExit();
 
             using var child = System.Diagnostics.Process.Start(exe, ["60"])!;
-            var found = AppLauncher.FindRunning(Path.GetFullPath(exe));
+
+            // Between fork and exec the new process still reports its parent's path, so on a busy machine
+            // it can take a moment to show up under its own. Wait for it, as the app does after `open`.
+            var found = new List<System.Diagnostics.Process>();
+            for (var i = 0; i < 100 && !found.Any(p => p.Id == child.Id); i++)
+            {
+                found = AppLauncher.FindRunning(Path.GetFullPath(exe));
+                if (!found.Any(p => p.Id == child.Id)) Thread.Sleep(50);
+            }
             Assert.Contains(found, p => p.Id == child.Id);
 
             Assert.True(AppLauncher.Quit(found, TimeSpan.FromSeconds(5)));
