@@ -780,20 +780,24 @@ public class TelegramTests
 public class RunningAppTests
 {
     [Fact]
-    public void Finds_and_quits_a_running_copy()
+    public async Task Finds_and_quits_a_running_copy()
     {
         if (OperatingSystem.IsWindows()) return;
         var dir = Directory.CreateTempSubdirectory();
         try
         {
-            // A private copy gives the test a unique executable path that nothing else is running.
+            // A compiled program gives the test a unique executable path that nothing else is running. (Copying
+            // Apple's own sleep does not work: it is arm64e, which macOS will not run once copied.)
+            var src = Path.Combine(dir.FullName, "napper.c");
             var exe = Path.Combine(dir.FullName, "napper");
-            File.Copy(File.Exists("/bin/sleep") ? "/bin/sleep" : "/usr/bin/sleep", exe);
-            File.SetUnixFileMode(exe, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-            if (OperatingSystem.IsMacOS())
-                System.Diagnostics.Process.Start("codesign", ["--force", "-s", "-", exe])!.WaitForExit();
+            File.WriteAllText(src, "#include <unistd.h>\nint main(void) { sleep(60); return 0; }\n");
+            using (var cc = System.Diagnostics.Process.Start("cc", [src, "-o", exe])!)
+            {
+                await cc.WaitForExitAsync();
+                Assert.Equal(0, cc.ExitCode);
+            }
 
-            using var child = System.Diagnostics.Process.Start(exe, ["60"])!;
+            using var child = System.Diagnostics.Process.Start(exe)!;
 
             // Between fork and exec the new process still reports its parent's path, so on a busy machine
             // it can take a moment to show up under its own. Wait for it, as the app does after `open`.
@@ -801,7 +805,7 @@ public class RunningAppTests
             for (var i = 0; i < 100 && !found.Any(p => p.Id == child.Id); i++)
             {
                 found = AppLauncher.FindRunning(Path.GetFullPath(exe));
-                if (!found.Any(p => p.Id == child.Id)) Thread.Sleep(50);
+                if (!found.Any(p => p.Id == child.Id)) await Task.Delay(50);
             }
             Assert.Contains(found, p => p.Id == child.Id);
 
