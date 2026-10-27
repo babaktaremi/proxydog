@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ProxyDog
+GenericName=Per-app proxy
+Comment=Route any application through a SOCKS5 or HTTP proxy
+Exec=proxydog
+Icon=proxydog
+Terminal=false
+Categories=Network;Utility;Development;
+Keywords=proxy;socks5;http;network;vpn;
+StartupWMClass=ProxyDog

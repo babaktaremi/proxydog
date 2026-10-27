@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="212 200 600 600">
+  <defs>
+    <mask id="padMask" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="white"/>
+      <g fill="none" stroke="black" stroke-width="56" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -16)">
+        <path d="M432 650 H584"/>
+        <path d="M534 596 L588 650 L534 704"/>
+      </g>
+    </mask>
+  </defs>
+  <!-- thin ring, like the outline glyphs beside it in the menu bar -->
+  <circle cx="512" cy="500" r="268" fill="none" stroke="#000000" stroke-width="34"/>
+  <!-- paw, solid, with the arrow cut out of the pad -->
+  <g transform="translate(512 500) scale(0.5) translate(-512 -509)">
+    <g fill="#000000" transform="translate(0 -16)">
+      <ellipse cx="306" cy="478" rx="62" ry="84" transform="rotate(-24 306 478)"/>
+      <ellipse cx="425" cy="352" rx="68" ry="92" transform="rotate(-9 425 352)"/>
+      <ellipse cx="599" cy="352" rx="68" ry="92" transform="rotate(9 599 352)"/>
+      <ellipse cx="718" cy="478" rx="62" ry="84" transform="rotate(24 718 478)"/>
+    </g>
+    <g mask="url(#padMask)">
+      <path fill="#000000" transform="translate(0 -16)"
+            d="M512 484 C 626 484 724 578 724 682 C 724 764 664 806 596 806 C 556 806 538 788 512 788 C 486 788 468 806 428 806 C 360 806 300 764 300 682 C 300 578 398 484 512 484 Z"/>
+    </g>
+  </g>
+</svg>

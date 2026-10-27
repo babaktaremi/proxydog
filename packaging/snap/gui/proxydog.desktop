@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ProxyDog
+Comment=Route any application through a SOCKS5 or HTTP proxy
+Exec=proxydog
+Icon=${SNAP}/meta/gui/proxydog.png
+Terminal=false
+Categories=Network;Utility;Development;
+StartupWMClass=ProxyDog

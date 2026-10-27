@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ProxyDog.UI.ViewModels"
+             xmlns:core="using:ProxyDog.Core"
+             x:Class="ProxyDog.UI.Views.RulesPageView"
+             x:DataType="vm:RulesPageViewModel">
+  <Grid>
+    <!-- Rule list -->
+    <ScrollViewer IsVisible="{Binding Main.ShowList}">
+      <StackPanel Margin="28 8 28 28" Spacing="18">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="3">
+            <TextBlock Classes="title" Text="All Rules" />
+            <TextBlock Classes="muted" Text="Each rule sends one application's traffic through a proxy." />
+          </StackPanel>
+          <Button Grid.Column="1" Content="Add Rule" Classes="accent" VerticalAlignment="Top"
+                  Command="{Binding Main.AddRuleCommand}" />
+        </Grid>
+
+        <Border Classes="group">
+          <ItemsControl ItemsSource="{Binding Main.Rules}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RuleViewModel">
+                <Border Classes="row">
+                  <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="6">
+                    <Button Grid.Column="0" Classes="row-main" Command="{Binding OpenCommand}"
+                            ToolTip.Tip="Open connection log">
+                      <StackPanel Spacing="1">
+                        <TextBlock Text="{Binding Title}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Classes="caption" TextTrimming="CharacterEllipsis">
+                          <Run Text="{Binding AppName}" /><Run Text=" through " /><Run Text="{Binding Summary}" />
+                        </TextBlock>
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Classes="plain" Content="Edit" Command="{Binding EditCommand}" VerticalAlignment="Center" />
+                    <Button Grid.Column="2" Classes="plain" Content="Remove" Command="{Binding DeleteCommand}" VerticalAlignment="Center" />
+                    <ToggleButton Grid.Column="3" Classes="switch" IsChecked="{Binding IsOn}" VerticalAlignment="Center"
+                                  Margin="8 0 0 0" ToolTip.Tip="Turn rule on or off" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Empty -->
+    <StackPanel IsVisible="{Binding Main.IsEmpty}" Spacing="6" MaxWidth="380" Margin="28 8"
+                HorizontalAlignment="Left" VerticalAlignment="Top">
+      <TextBlock Classes="title" Text="No Rules" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Add a rule with a SOCKS5 or HTTP proxy, choose an application, and switch it on. ProxyDog opens the application with its traffic routed through the proxy and logs every connection." />
+      <Button Content="Add Rule" Classes="accent" Command="{Binding Main.AddRuleCommand}" Margin="0 10 0 0" HorizontalAlignment="Left" />
+    </StackPanel>
+
+    <!-- Editor, laid out like a System Settings form -->
+    <ScrollViewer IsVisible="{Binding Main.IsEditing}">
+      <ContentControl Content="{Binding Main.Editor}">
+        <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:RuleEditorViewModel">
+            <StackPanel Margin="28 8 28 28" Spacing="18" MaxWidth="620" HorizontalAlignment="Left">
+              <TextBlock Classes="title" Text="{Binding Heading}" />
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="section" Text="Proxy" Margin="4 0" />
+                <Border Classes="group">
+                  <StackPanel>
+                    <Border Classes="row" IsVisible="{Binding HasRecents}">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Recent" VerticalAlignment="Center" />
+                        <ComboBox Grid.Column="1" Classes="pill" HorizontalAlignment="Right" MinWidth="240"
+                                  PlaceholderText="Choose a proxy you used before"
+                                  ItemsSource="{Binding Recents}" SelectedItem="{Binding SelectedRecent}">
+                          <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="core:RecentProxy">
+                              <TextBlock Text="{Binding Label}" />
+                            </DataTemplate>
+                          </ComboBox.ItemTemplate>
+                        </ComboBox>
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Type" VerticalAlignment="Center" />
+                        <ListBox Grid.Column="1" Classes="segmented" SelectedIndex="{Binding KindIndex}">
+                          <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                          </ListBox.ItemsPanel>
+                          <ListBoxItem Content="SOCKS5" />
+                          <ListBoxItem Content="HTTP" />
+                        </ListBox>
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Host" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding Host}" Watermark="proxy.example.com" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Port" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding PortText}" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Username" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding Username}" Watermark="Optional" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row last">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Password" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding Password}" PasswordChar="•" Watermark="Optional" />
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Classes="section" Text="Application" Margin="4 0" />
+                <Border Classes="group">
+                  <StackPanel>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock Text="{Binding AppLabel}" Classes="muted" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding AppLabel}" />
+                        <Button Grid.Column="1" Content="Choose…" Command="{Binding ChooseAppCommand}" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Text="Kill switch" />
+                          <TextBlock Classes="caption" TextWrapping="Wrap"
+                                     Text="Close the application if the proxy stops responding or the rule is turned off." />
+                        </StackPanel>
+                        <ToggleButton Grid.Column="1" Classes="switch" IsChecked="{Binding KillSwitch}" VerticalAlignment="Center" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel VerticalAlignment="Center">
+                          <TextBlock Text="If already running" />
+                          <TextBlock Classes="caption" TextWrapping="Wrap"
+                                     Text="Restart quits it and reopens it through the proxy. Only a copy started by ProxyDog can be proxied." />
+                        </StackPanel>
+                        <ListBox Grid.Column="1" Classes="segmented" SelectedIndex="{Binding WhenRunningIndex}">
+                          <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                          </ListBox.ItemsPanel>
+                          <ListBoxItem Content="Leave it" />
+                          <ListBoxItem Content="Restart it" />
+                        </ListBox>
+                      </Grid>
+                    </Border>
+                    <Border Classes="row">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Arguments" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding Arguments}" Watermark="Optional" />
+                      </Grid>
+                    </Border>
+                    <Border Classes="row last">
+                      <Grid ColumnDefinitions="150,*">
+                        <TextBlock Text="Name" VerticalAlignment="Center" />
+                        <TextBox Grid.Column="1" Classes="field" Text="{Binding Name}" Watermark="Same as the application" />
+                      </Grid>
+                    </Border>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <TextBlock Classes="error" Text="{Binding Error}" Margin="4 0"
+                         IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <Button Content="Cancel" Command="{Binding CancelCommand}" />
+                <Button Content="Save" Classes="accent" Command="{Binding SaveCommand}" />
+              </StackPanel>
+            </StackPanel>
+          </DataTemplate>
+        </ContentControl.DataTemplates>
+      </ContentControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

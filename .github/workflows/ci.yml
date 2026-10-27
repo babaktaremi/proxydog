@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-14]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # The build also compiles the native LD_PRELOAD / DYLD hook with the runner's C compiler.
+      - name: Build
+        run: dotnet build ProxyDog.slnx -c Release
+
+      - name: Test
+        run: dotnet test ProxyDog.Tests -c Release --no-build --logger "console;verbosity=normal"
+
+  package-smoke:
+    name: Packaging works (linux-x64)
+    runs-on: ubuntu-24.04
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build the Linux tarball
+        run: scripts/package-linux.sh linux-x64 0.0.0-ci dist
+
+      - name: Check what is inside
+        run: |
+          tarball=dist/proxydog-0.0.0-ci-linux-x64.tar.gz
+          tar -tzf "$tarball" > files.txt
+          for f in proxydog/ProxyDog proxydog/native/libproxydog_hook.so proxydog.desktop proxydog.png LICENSE; do
+            grep -q "$f\$" files.txt || { echo "missing from tarball: $f"; exit 1; }
+          done
+          echo "tarball looks complete ($(wc -l < files.txt) files)"

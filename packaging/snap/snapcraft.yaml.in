@@ -1,0 +1,51 @@
+name: proxydog
+title: ProxyDog
+base: core24
+version: '@VERSION@'
+summary: Route any application through a SOCKS5 or HTTP proxy
+description: |
+  ProxyDog sends one application's traffic through a SOCKS5 or HTTP proxy you choose,
+  without touching the rest of the system, and shows every connection it makes in a live log.
+  Each rule has an on/off switch, an optional kill switch, and lives in your tray.
+license: Apache-2.0
+contact: babak.taremi.dev@gmail.com
+website: https://github.com/babaktaremi/proxydog
+source-code: https://github.com/babaktaremi/proxydog
+issues: https://github.com/babaktaremi/proxydog/issues
+icon: snap/gui/proxydog.png
+grade: stable
+
+# Classic confinement is required: ProxyDog launches other programs from the host with an LD_PRELOAD hook,
+# which a strict snap sandbox does not allow. The Snap Store reviews classic snaps by hand.
+confinement: classic
+
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
+
+apps:
+  proxydog:
+    command: usr/lib/proxydog/ProxyDog
+    desktop: usr/share/applications/proxydog.desktop
+
+parts:
+  proxydog:
+    plugin: nil
+    build-packages: [curl]
+    # A .NET self-contained app: patching its libraries would break it, and a classic snap uses the host's libc.
+    build-attributes: [no-patchelf]
+    override-build: |
+      case "$CRAFT_ARCH_BUILD_FOR" in
+        amd64) arch=x64 ;;
+        arm64) arch=arm64 ;;
+        *) echo "unsupported architecture $CRAFT_ARCH_BUILD_FOR" >&2; exit 1 ;;
+      esac
+      curl -fsSL "https://github.com/babaktaremi/proxydog/releases/download/v@VERSION@/proxydog-@VERSION@-linux-$arch.tar.gz" \
+        | tar -xz --strip-components=1 -C "$CRAFT_PART_BUILD"
+      install -d "$CRAFT_PART_INSTALL/usr/lib" "$CRAFT_PART_INSTALL/usr/share/applications"
+      cp -a proxydog "$CRAFT_PART_INSTALL/usr/lib/proxydog"
+      install -m644 proxydog.desktop "$CRAFT_PART_INSTALL/usr/share/applications/proxydog.desktop"

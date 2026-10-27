@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ProxyDog.Core/ProxyDog.Core.csproj" />
+  <Project Path="ProxyDog.Engine/ProxyDog.Engine.csproj" />
+  <Project Path="ProxyDog.App/ProxyDog.App.csproj" />
+  <Project Path="ProxyDog.Tests/ProxyDog.Tests.csproj" />
+</Solution>

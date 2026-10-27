@@ -1,0 +1,68 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ProxyDog.UI.App"
+             Name="ProxyDog"
+             RequestedThemeVariant="Default">
+  <Application.Resources>
+    <ResourceDictionary>
+      <CornerRadius x:Key="ControlCornerRadius">7</CornerRadius>
+
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="WindowBgBrush" Color="#F6F6F6" />
+          <SolidColorBrush x:Key="GroupBgBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SidebarBrush" Color="#EDEDED" />
+          <SolidColorBrush x:Key="SidebarVibrantBrush" Color="#66F6F6F6" />
+          <SolidColorBrush x:Key="HairlineBrush" Color="#1A000000" />
+          <SolidColorBrush x:Key="MutedBrush" Color="#6E6E73" />
+          <SolidColorBrush x:Key="SelectionBrush" Color="#1A000000" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#0D000000" />
+          <SolidColorBrush x:Key="SegmentBgBrush" Color="#14000000" />
+          <SolidColorBrush x:Key="SegmentOnBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="SwitchOffBrush" Color="#D9D9DE" />
+          <SolidColorBrush x:Key="LinkBrush" Color="#0071E3" />
+          <SolidColorBrush x:Key="OkBrush" Color="#1D8F4E" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#C4281C" />
+          <SolidColorBrush x:Key="ButtonBackground" Color="#12000000" />
+          <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#1C000000" />
+          <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#29000000" />
+          <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+          <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+          <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="WindowBgBrush" Color="#1E1E1E" />
+          <SolidColorBrush x:Key="GroupBgBrush" Color="#2A2A2C" />
+          <SolidColorBrush x:Key="SidebarBrush" Color="#262628" />
+          <SolidColorBrush x:Key="SidebarVibrantBrush" Color="#66262628" />
+          <SolidColorBrush x:Key="HairlineBrush" Color="#26FFFFFF" />
+          <SolidColorBrush x:Key="MutedBrush" Color="#A1A1A6" />
+          <SolidColorBrush x:Key="SelectionBrush" Color="#24FFFFFF" />
+          <SolidColorBrush x:Key="HoverBrush" Color="#14FFFFFF" />
+          <SolidColorBrush x:Key="SegmentBgBrush" Color="#1FFFFFFF" />
+          <SolidColorBrush x:Key="SegmentOnBrush" Color="#636366" />
+          <SolidColorBrush x:Key="SwitchOffBrush" Color="#48484A" />
+          <SolidColorBrush x:Key="LinkBrush" Color="#5AAEFF" />
+          <SolidColorBrush x:Key="OkBrush" Color="#32D74B" />
+          <SolidColorBrush x:Key="DangerBrush" Color="#FF8A80" />
+          <SolidColorBrush x:Key="ButtonBackground" Color="#26FFFFFF" />
+          <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#33FFFFFF" />
+          <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#40FFFFFF" />
+          <SolidColorBrush x:Key="ButtonBorderBrush" Color="Transparent" />
+          <SolidColorBrush x:Key="ButtonBorderBrushPointerOver" Color="Transparent" />
+          <SolidColorBrush x:Key="ButtonBorderBrushPressed" Color="Transparent" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#0071E3" />
+        <ColorPaletteResources x:Key="Dark" Accent="#0A67D8" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="/Styles.axaml" />
+  </Application.Styles>
+</Application>

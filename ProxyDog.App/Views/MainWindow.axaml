@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ProxyDog.UI.ViewModels"
+        xmlns:views="using:ProxyDog.UI.Views"
+        x:Class="ProxyDog.UI.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="ProxyDog"
+        Icon="/Assets/proxydog.png"
+        Width="940" Height="620" MinWidth="720" MinHeight="460">
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:RulesPageViewModel">
+      <views:RulesPageView />
+    </DataTemplate>
+    <DataTemplate DataType="vm:RuleViewModel">
+      <views:RuleLogView />
+    </DataTemplate>
+  </Window.DataTemplates>
+
+  <Grid ColumnDefinitions="248,*">
+    <!-- Sidebar -->
+    <Border x:Name="Sidebar" Grid.Column="0" BorderBrush="{DynamicResource HairlineBrush}" BorderThickness="0 0 1 0">
+      <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12 0">
+        <Border Classes="inset" />
+        <TextBlock Grid.Row="1" Classes="sidebar-heading" Text="Rules" Margin="10 6 10 8" />
+        <ListBox Grid.Row="2" Classes="sidebar" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:TabViewModel">
+              <Grid ColumnDefinitions="26,*" VerticalAlignment="Center">
+                <Ellipse Classes="dot" Classes.on="{Binding IsActive}" IsVisible="{Binding ShowsStatus}" HorizontalAlignment="Left" />
+                <!-- list glyph for the overview entry -->
+                <Path Classes="sidebar-glyph" Data="M1,4 L15,4 M1,9 L15,9 M1,14 L10,14" IsVisible="{Binding !ShowsStatus}"
+                      HorizontalAlignment="Left" Width="16" Height="18" />
+                <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Button Grid.Row="3" Classes="sidebar-action" Margin="0 8 0 14" Command="{Binding AddRuleCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+            <Path Data="M7,2 L7,12 M2,7 L12,7" Stroke="{DynamicResource LinkBrush}" StrokeThickness="2"
+                  StrokeLineCap="Round" Width="14" Height="14" VerticalAlignment="Center" />
+            <TextBlock Text="Add Rule" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </Border>
+
+    <!-- Detail -->
+    <Border x:Name="DetailPane" Grid.Column="1">
+      <Grid RowDefinitions="Auto,Auto,*">
+        <Border Classes="inset" />
+
+        <!-- A newer release is out -->
+        <Border Grid.Row="1" Classes="group" Margin="28 4 28 10" Padding="16 12" IsVisible="{Binding Update.IsAvailable}">
+          <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" ColumnSpacing="16" RowSpacing="8">
+            <StackPanel Spacing="2" VerticalAlignment="Center">
+              <TextBlock Text="{Binding Update.Headline}" FontWeight="SemiBold" />
+              <TextBlock Classes="caption" Text="{Binding Update.Detail}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+              <Button Content="What's New" Command="{Binding Update.ViewReleaseCommand}" />
+              <Button Content="Copy Command" Command="{Binding Update.CopyCommandCommand}" IsVisible="{Binding Update.HasCommand}" />
+              <Button Content="Skip" Command="{Binding Update.SkipCommand}" ToolTip.Tip="Don't tell me about this version again" />
+              <Button Content="Later" Command="{Binding Update.LaterCommand}" />
+            </StackPanel>
+            <Border Grid.Row="1" Grid.ColumnSpan="2" IsVisible="{Binding Update.HasCommand}" CornerRadius="7" Padding="10 6"
+                    Background="{DynamicResource HoverBrush}">
+              <TextBlock Classes="mono" Text="{Binding Update.Command}" TextTrimming="CharacterEllipsis" />
+            </Border>
+          </Grid>
+        </Border>
+
+        <ContentControl Grid.Row="2" Content="{Binding SelectedTab}" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

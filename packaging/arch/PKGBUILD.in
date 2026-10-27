@@ -1,0 +1,35 @@
+# Maintainer: Babak Taremi <babak.taremi.dev@gmail.com>
+pkgname=proxydog-bin
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Route any application through a SOCKS5 or HTTP proxy and watch every connection'
+arch=('x86_64' 'aarch64')
+url='https://github.com/babaktaremi/proxydog'
+license=('Apache-2.0')
+depends=('glibc' 'libx11' 'libice' 'libsm' 'fontconfig')
+optdepends=('libnotify: desktop notifications when an update is available')
+provides=('proxydog')
+conflicts=('proxydog')
+# Prebuilt .NET binaries: stripping them breaks the runtime.
+options=('!strip' '!debug')
+source_x86_64=("$pkgname-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/proxydog-$pkgver-linux-x64.tar.gz")
+source_aarch64=("$pkgname-$pkgver-aarch64.tar.gz::$url/releases/download/v$pkgver/proxydog-$pkgver-linux-arm64.tar.gz")
+sha256sums_x86_64=('@SHA256_LINUX_X64@')
+sha256sums_aarch64=('@SHA256_LINUX_ARM64@')
+
+package() {
+  local dir
+  case "$CARCH" in
+    x86_64) dir="proxydog-$pkgver-linux-x64" ;;
+    aarch64) dir="proxydog-$pkgver-linux-arm64" ;;
+  esac
+  cd "$srcdir/$dir"
+
+  install -dm755 "$pkgdir/usr/lib/proxydog" "$pkgdir/usr/bin"
+  cp -a proxydog/. "$pkgdir/usr/lib/proxydog/"
+  ln -s /usr/lib/proxydog/ProxyDog "$pkgdir/usr/bin/proxydog"
+
+  install -Dm644 proxydog.desktop "$pkgdir/usr/share/applications/proxydog.desktop"
+  install -Dm644 proxydog.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/proxydog.png"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

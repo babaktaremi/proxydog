@@ -1,0 +1,21 @@
+# build output
+bin/
+obj/
+dist/
+ProxyDog.App/native/
+
+# IDE and tooling state
+.idea/
+.vs/
+*.user
+.claude/
+.agents/
+.codex/
+.impeccable/
+
+# local and private
+*.DotSettings.user
+rules.json
+settings.json
+recent-proxies.json
+.DS_Store

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>ProxyDog</AssemblyName>
+    <RootNamespace>ProxyDog.UI</RootNamespace>
+    <Version>1.0.0</Version>
+    <ApplicationIcon />
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <!-- No ICU dependency: smaller packages and nothing extra to install on Linux. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <Authors>Babak Taremi</Authors>
+    <Description>Route any application through a SOCKS5 or HTTP proxy and watch every connection.</Description>
+    <RepositoryUrl>https://github.com/babaktaremi/proxydog</RepositoryUrl>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProxyDog.Core\ProxyDog.Core.csproj" />
+    <ProjectReference Include="..\ProxyDog.Engine\ProxyDog.Engine.csproj" />
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <!-- Builds the native connect() hook next to the app so AppLauncher.FindHook() can find it in native/. -->
+  <Target Name="BuildNativeHook" AfterTargets="Build" Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="sh &quot;$(MSBuildThisFileDirectory)../ProxyDog.Hook/build.sh&quot; &quot;$(OutDir)native&quot;"
+          ConsoleToMSBuild="true" />
+  </Target>
+
+  <!-- The hook is built next to a normal build; a publish needs it in its own output folder too. -->
+  <Target Name="CopyHookToPublish" AfterTargets="Publish" Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <ItemGroup>
+      <HookFiles Include="$(OutDir)native/*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(HookFiles)" DestinationFolder="$(PublishDir)native" />
+  </Target>
+</Project>

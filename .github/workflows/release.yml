@@ -1,0 +1,263 @@
+name: Release
+
+# Push a tag like v1.2.3 to publish a release. Run it by hand to test the packaging without publishing.
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (nothing is published)'
+        default: '0.0.0-dev'
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Work out the version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+    steps:
+      - id: v
+        run: |
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+            publish=true
+          else
+            version="${{ inputs.version }}"
+            publish=false
+          fi
+          # Semantic Versioning: MAJOR.MINOR.PATCH with an optional -prerelease tag.
+          if ! echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
+            echo "'$version' is not a semantic version" >&2
+            exit 1
+          fi
+          case "$version" in *-*) prerelease=true ;; *) prerelease=false ;; esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "Building $version (publish=$publish, prerelease=$prerelease)"
+
+  macos:
+    name: macOS ${{ matrix.rid }}
+    needs: prepare
+    runs-on: macos-14
+    strategy:
+      matrix:
+        rid: [osx-arm64, osx-x64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Package ProxyDog.app
+        run: scripts/package-macos.sh ${{ matrix.rid }} ${{ needs.prepare.outputs.version }} dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+
+  linux:
+    name: Linux ${{ matrix.rid }}
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - { rid: linux-x64, runner: ubuntu-24.04 }
+          - { rid: linux-arm64, runner: ubuntu-24.04-arm }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Package tarball
+        run: scripts/package-linux.sh ${{ matrix.rid }} ${{ needs.prepare.outputs.version }} dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.rid }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish the GitHub release
+    if: needs.prepare.outputs.publish == 'true'
+    needs: [prepare, macos, linux]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: package-*
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > checksums.txt && cat checksums.txt
+
+      # The release text is this version's section of CHANGELOG.md, or GitHub's generated notes if there is none.
+      - name: Release notes
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > notes.md
+          if [ -s notes.md ]; then echo "notes from CHANGELOG.md:"; cat notes.md; else echo "no changelog section for $VERSION"; fi
+
+      - name: Create the release
+        run: |
+          flags=""
+          [ "${{ needs.prepare.outputs.prerelease }}" = "true" ] && flags="--prerelease"
+          if [ -s notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" dist/* --title "ProxyDog $VERSION" --notes-file notes.md $flags
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "ProxyDog $VERSION" --generate-notes $flags
+          fi
+
+  homebrew:
+    name: Update the Homebrew tap
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
+    needs: [prepare, release]
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TAP_DEPLOY_KEY: ${{ secrets.TAP_DEPLOY_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip when the tap is not configured
+        id: gate
+        run: |
+          if [ -z "$TAP_DEPLOY_KEY" ]; then echo "TAP_DEPLOY_KEY is not set; skipping."; echo "go=false" >> "$GITHUB_OUTPUT"; else echo "go=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Download the published zips and hash them
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v${VERSION}"
+          curl -fsSL -o arm64.zip "$base/ProxyDog-${VERSION}-macos-arm64.zip"
+          curl -fsSL -o x64.zip "$base/ProxyDog-${VERSION}-macos-x64.zip"
+          echo "SHA256_MACOS_ARM64=$(sha256sum arm64.zip | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "SHA256_MACOS_X64=$(sha256sum x64.zip | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Commit the cask to the tap
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$TAP_DEPLOY_KEY" > ~/.ssh/tap_key
+          chmod 600 ~/.ssh/tap_key
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/tap_key -o IdentitiesOnly=yes"
+          git clone git@github.com:babaktaremi/homebrew-tap.git tap
+          mkdir -p tap/Casks
+          scripts/render.sh packaging/homebrew/proxydog.rb.in tap/Casks/proxydog.rb
+          cd tap
+          git add Casks/proxydog.rb
+          if git diff --cached --quiet; then echo "cask already up to date"; exit 0; fi
+          git -c user.name="proxydog release bot" -c user.email="noreply@github.com" commit -m "proxydog ${VERSION}"
+          git push
+
+  arch:
+    name: Build the pacman package
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
+    needs: [prepare, release]
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Install tools
+        run: pacman -Syu --noconfirm base-devel git github-cli sudo
+      - uses: actions/checkout@v4
+      - name: Render the PKGBUILD from the published checksums
+        run: |
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --pattern checksums.txt
+          export SHA256_LINUX_X64=$(grep "linux-x64.tar.gz" checksums.txt | cut -d' ' -f1)
+          export SHA256_LINUX_ARM64=$(grep "linux-arm64.tar.gz" checksums.txt | cut -d' ' -f1)
+          mkdir -p /tmp/pkg
+          scripts/render.sh packaging/arch/PKGBUILD.in /tmp/pkg/PKGBUILD
+          cat /tmp/pkg/PKGBUILD
+      - name: makepkg (as a normal user, which it requires)
+        run: |
+          useradd -m builder
+          chown -R builder /tmp/pkg
+          su builder -c "cd /tmp/pkg && makepkg -f --noconfirm"
+          ls -la /tmp/pkg/*.pkg.tar.zst
+      - name: Attach the package to the release
+        run: gh release upload "v${VERSION}" /tmp/pkg/*.pkg.tar.zst --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Keep the PKGBUILD for the AUR job
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkgbuild
+          path: /tmp/pkg/PKGBUILD
+
+  aur:
+    name: Publish to the AUR
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
+    needs: [prepare, arch]
+    runs-on: ubuntu-24.04
+    env:
+      AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Skip when the AUR key is not configured
+        id: gate
+        run: |
+          if [ -z "$AUR_SSH_PRIVATE_KEY" ]; then echo "AUR_SSH_PRIVATE_KEY is not set; skipping."; echo "go=false" >> "$GITHUB_OUTPUT"; else echo "go=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.go == 'true'
+        with:
+          name: pkgbuild
+          path: aur
+      - uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+        if: steps.gate.outputs.go == 'true'
+        with:
+          pkgname: proxydog-bin
+          pkgbuild: aur/PKGBUILD
+          commit_username: Babak Taremi
+          commit_email: babak.taremi.dev@gmail.com
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: Update to ${{ needs.prepare.outputs.version }}
+          updpkgsums: false
+
+  snap:
+    name: Build and publish the snap
+    if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
+    needs: [prepare, release]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render snapcraft.yaml
+        run: |
+          mkdir -p snap
+          scripts/render.sh packaging/snap/snapcraft.yaml.in snap/snapcraft.yaml
+          cp -r packaging/snap/gui snap/gui
+      - uses: snapcore/action-build@v1
+        id: build
+      - name: Keep the .snap
+        uses: actions/upload-artifact@v4
+        with:
+          name: snap-${{ matrix.runner }}
+          path: ${{ steps.build.outputs.snap }}
+      - uses: snapcore/action-publish@v1
+        if: env.SNAPCRAFT_STORE_CREDENTIALS != ''
+        with:
+          snap: ${{ steps.build.outputs.snap }}
+          release: stable
