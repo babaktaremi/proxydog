@@ -37,7 +37,9 @@ proxy, and only that application's traffic goes through it. Everything else on y
 **macOS 12 or newer** (Apple Silicon and Intel)
 
 ```sh
-brew install --cask babaktaremi/tap/proxydog
+brew tap babaktaremi/tap
+brew trust babaktaremi/tap      # Homebrew 7+ asks you to trust a third-party tap once
+brew install --cask proxydog
 ```
 
 Or download `ProxyDog-<version>-macos-<arm64|x64>.zip` from the [latest release](https://github.com/babaktaremi/proxydog/releases/latest),
@@ -56,8 +58,8 @@ ad hoc but not notarized by Apple, so macOS asks once. Homebrew clears that prom
 The Snap needs `--classic` because ProxyDog starts other programs from your system with a preload library; a
 sandboxed snap cannot do that.
 
-> The Homebrew tap is published with every release. The AUR and Snap Store entries are published when the maintainer's
-> store credentials are configured (see [docs/RELEASING.md](docs/RELEASING.md)); until then use the package file or tarball.
+> The Homebrew cask follows the latest release. The AUR and Snap Store entries appear once the maintainer's store accounts
+> are connected (see [docs/RELEASING.md](docs/RELEASING.md)); until then use the package file or tarball.
 
 ## Use it
 
