@@ -204,6 +204,7 @@ jobs:
 
   aur:
     name: Publish to the AUR
+    continue-on-error: true   # optional channel: never fail the release over it
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
     needs: [prepare, arch]
     runs-on: ubuntu-24.04
@@ -232,6 +233,7 @@ jobs:
 
   snap:
     name: Build and publish the snap
+    continue-on-error: true   # optional channel: never fail the release over it
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
     needs: [prepare, release]
     runs-on: ${{ matrix.runner }}
