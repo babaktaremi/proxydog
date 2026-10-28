@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Install tools
         run: pacman -Syu --noconfirm base-devel git github-cli sudo
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Render the PKGBUILD from the published checksums
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
