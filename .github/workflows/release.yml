@@ -193,7 +193,7 @@ jobs:
         with:
           name: pkgbuild
           path: aur
-      - uses: KSXGitHub/github-actions-deploy-aur@v3.0.1
+      - uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         if: steps.gate.outputs.go == 'true'
         with:
           pkgname: proxydog-bin
