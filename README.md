@@ -56,16 +56,19 @@ ad hoc but not notarized by Apple, so macOS asks once. Homebrew clears that prom
 
 #### Arch / Manjaro (pacman)
 
-The package is built for every release and attached to it. This installs the newest one (`pacman -U` downloads from a URL itself):
+The package is built for every release and attached to it. Download it first, then install the file. (Do not give `pacman -U` the
+URL itself: it then also asks for a `.sig` signature file, which releases do not have, and fails with a 404.)
 
 ```sh
-sudo pacman -U "$(curl -s https://api.github.com/repos/babaktaremi/proxydog/releases/latest | grep -o 'https://[^"]*x86_64\.pkg\.tar\.zst')"
+url=$(curl -s https://api.github.com/repos/babaktaremi/proxydog/releases/latest | grep -o 'https://[^"]*x86_64\.pkg\.tar\.zst')
+curl -fLO "$url" && sudo pacman -U "./${url##*/}"
 ```
 
-Run the same command again to update. To install a specific version instead, for example 1.1.0:
+Run the same two lines again to update. To install a specific version instead, for example 1.1.0:
 
 ```sh
-sudo pacman -U https://github.com/babaktaremi/proxydog/releases/download/v1.1.0/proxydog-bin-1.1.0-1-x86_64.pkg.tar.zst
+curl -fLO https://github.com/babaktaremi/proxydog/releases/download/v1.1.0/proxydog-bin-1.1.0-1-x86_64.pkg.tar.zst
+sudo pacman -U ./proxydog-bin-1.1.0-1-x86_64.pkg.tar.zst
 ```
 
 There is no package for Arch on ARM (aarch64); use the tarball there.
