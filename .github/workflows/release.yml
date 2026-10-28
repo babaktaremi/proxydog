@@ -51,7 +51,7 @@ jobs:
         rid: [osx-arm64, osx-x64]
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Package ProxyDog.app
@@ -73,7 +73,7 @@ jobs:
           - { rid: linux-arm64, runner: ubuntu-24.04-arm }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - name: Package tarball
