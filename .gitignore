@@ -8,8 +8,15 @@ ProxyDog.App/native/
 .idea/
 .vs/
 *.user
-.claude/
-.agents/
+# tool state is local, except the project's own skill (the single copy lives in .claude; .agents links to it)
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/proxydog-release/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/proxydog-release
 .codex/
 .impeccable/
 
