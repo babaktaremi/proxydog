@@ -50,16 +50,32 @@ ad hoc but not notarized by Apple, so macOS asks once. Homebrew clears that prom
 
 | Distribution | Command |
 | --- | --- |
-| Arch / Manjaro (AUR) | `yay -S proxydog-bin` |
-| Arch (package file) | `sudo pacman -U proxydog-bin-<version>-1-x86_64.pkg.tar.zst` (from the [release](https://github.com/babaktaremi/proxydog/releases/latest)) |
+| Arch / Manjaro (x86_64) | `pacman -U` on the release's package file, see [below](#arch--manjaro-pacman) |
 | Snap | `sudo snap install proxydog --classic` |
 | Any distribution | Download `proxydog-<version>-linux-<x64\|arm64>.tar.gz`, unpack it and run `proxydog/ProxyDog` |
+
+#### Arch / Manjaro (pacman)
+
+The package is built for every release and attached to it. This installs the newest one (`pacman -U` downloads from a URL itself):
+
+```sh
+sudo pacman -U "$(curl -s https://api.github.com/repos/babaktaremi/proxydog/releases/latest | grep -o 'https://[^"]*x86_64\.pkg\.tar\.zst')"
+```
+
+Run the same command again to update. To install a specific version instead, for example 1.1.0:
+
+```sh
+sudo pacman -U https://github.com/babaktaremi/proxydog/releases/download/v1.1.0/proxydog-bin-1.1.0-1-x86_64.pkg.tar.zst
+```
+
+There is no package for Arch on ARM (aarch64); use the tarball there.
 
 The Snap needs `--classic` because ProxyDog starts other programs from your system with a preload library; a
 sandboxed snap cannot do that.
 
-> The Homebrew cask follows the latest release. The AUR and Snap Store entries appear once the maintainer's store accounts
-> are connected (see [docs/RELEASING.md](docs/RELEASING.md)); until then use the package file or tarball.
+> The Homebrew cask follows the latest release. **ProxyDog is not on the AUR or the Snap Store yet** (so `yay -S proxydog-bin` and
+> `snap install proxydog` will not find it): both need the maintainer's store accounts (see [docs/RELEASING.md](docs/RELEASING.md)).
+> Until then use the pacman package file or the tarball. Updating means installing the newer package file the same way.
 
 ## Use it
 
